@@ -1,28 +1,23 @@
 package youtube;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.stream.Stream;
+import youtube.component.YoutubeStreaming;
+import youtube.component.YoutubeStreamingOutput;
+import youtube.services.ReadFileService;
 
 public class Main {
     public static void main(String[] args) {
         String fileName = "file.txt";
 
-        //read file into stream, try-with-resources
-        try (Stream<String> lines = Files.lines(Paths.get(fileName))) {
-            lines.forEach(
-                    line -> {
-                        String[] splited = line.split("\\s+");
-                        for (String string:splited) {
-                            Integer number = Integer.parseInt(string);
-                            System.out.println(number);
-                        }
-                    }
-            );
+        ReadFileService readFileService = new ReadFileService();
+        readFileService.parseFile(fileName);
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        YoutubeStreaming youtubeStreaming = YoutubeStreaming.getInstance();
+        YoutubeStreamingOutput.getInstance().setVideoCacheMap();
+//        YoutubeStreamingOutput.getInstance().setValues();
+
+        YoutubeStreamingOutput youtubeStreamingOutput = YoutubeStreamingOutput.getInstance();
+        Double score = YoutubeStreamingOutput.getInstance().getScore();
+        System.out.println(String.valueOf(score));
+        YoutubeStreamingOutput.getInstance().validation();
     }
 }

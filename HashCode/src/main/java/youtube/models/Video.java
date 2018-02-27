@@ -1,11 +1,19 @@
 package youtube.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
 public class Video {
     private Integer id;
     private Integer mb;
+
+    public Video(Integer id, Integer mb) {
+        this.id = id;
+        this.mb = mb;
+    }
+
+    public Integer getMb() {
+        return mb;
+    }
+
+    public Integer getId() {
+        return id;
+    }
 }
