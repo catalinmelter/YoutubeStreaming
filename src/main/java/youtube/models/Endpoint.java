@@ -5,10 +5,12 @@ import lombok.Getter;
 import java.util.*;
 
 public class Endpoint {
+    private Integer id;
     private Integer datacenterLatency;
     private Map<Cache, Integer> cachesLatency = new HashMap<>();
 
-    public Endpoint(Integer datacenterLatency) {
+    public Endpoint(Integer id, Integer datacenterLatency) {
+        this.id = id;
         this.datacenterLatency = datacenterLatency;
     }
 
@@ -41,5 +43,9 @@ public class Endpoint {
         }
 
         this.cachesLatency = sortedMap;
+    }
+
+    public Integer getId() {
+        return id;
     }
 }

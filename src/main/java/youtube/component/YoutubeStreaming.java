@@ -38,8 +38,8 @@ public class YoutubeStreaming {
         }
     }
 
-    public void addEndpoint(Integer datacenterLatency, List<String> lines){
-        Endpoint endpoint = new Endpoint(datacenterLatency);
+    public void addEndpoint(Integer id, Integer datacenterLatency, List<String> lines){
+        Endpoint endpoint = new Endpoint(id, datacenterLatency);
         for(String line: lines){
             String[] splitedIn = line.split("\\s+");
             endpoint.addCacheLatency(caches.get(Integer.parseInt(splitedIn[0])), Integer.parseInt(splitedIn[1]));

@@ -34,7 +34,7 @@ public class ReadFileService {
                     line = br.readLine();
                     lines.add(line);
                 }
-                YoutubeStreaming.getInstance().addEndpoint(datacenterLatency, lines);
+                YoutubeStreaming.getInstance().addEndpoint(i, datacenterLatency, lines);
             }
 
             // Requests

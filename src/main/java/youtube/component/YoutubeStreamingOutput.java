@@ -6,7 +6,6 @@ import youtube.models.RequestDescription;
 import youtube.models.Video;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class YoutubeStreamingOutput {
     private Map<Cache, Set<Video>> videoCacheMap = new HashMap<>();
@@ -17,11 +16,11 @@ public class YoutubeStreamingOutput {
         videoCacheMap.put(YoutubeStreaming.getInstance().getCaches().get(0),
                 Collections.singleton(YoutubeStreaming.getInstance().getVideos().get(2)));
         videoCacheMap.put(YoutubeStreaming.getInstance().getCaches().get(1),
-                Set.of(YoutubeStreaming.getInstance().getVideos().get(1),
-                        YoutubeStreaming.getInstance().getVideos().get(3)));
+                new HashSet<>(Arrays.asList(YoutubeStreaming.getInstance().getVideos().get(1),
+                        YoutubeStreaming.getInstance().getVideos().get(3))));
         videoCacheMap.put(YoutubeStreaming.getInstance().getCaches().get(2),
-                Set.of(YoutubeStreaming.getInstance().getVideos().get(0),
-                        YoutubeStreaming.getInstance().getVideos().get(1)));
+                new HashSet<>(Arrays.asList(YoutubeStreaming.getInstance().getVideos().get(0),
+                        YoutubeStreaming.getInstance().getVideos().get(1))));
     }
 
     private static class SingletonHolder {
@@ -59,8 +58,8 @@ public class YoutubeStreamingOutput {
     }
 
     public double getScore(){
-        double allSavings = 0;
-        double allRequests = 0;
+        double allSavings = 0d;
+        double allRequests = 0d;
         for(RequestDescription requestDescription: YoutubeStreaming.getInstance().getRequestDescriptionList()){
             Integer requests = requestDescription.getRequests();
             Video video = requestDescription.getVideo();
@@ -69,23 +68,25 @@ public class YoutubeStreamingOutput {
             for (Map.Entry<Cache, Set<Video>> cacheVideo : videoCacheMap.entrySet()) {
                 Set<Video> videos = cacheVideo.getValue();
                 for(Video videoIn: videos){
-                    if (videoIn.equals(video)){
-                        cache = cacheVideo.getKey();
+                    if (videoIn.equals(video) && endpoint.getCachesLatency().containsKey(cacheVideo.getKey())){
+                        if(cache == null){
+                            cache = cacheVideo.getKey();
+                        }else if(endpoint.getCachesLatency().get(cache) > endpoint.getCachesLatency().get(cacheVideo.getKey())) {
+                            cache = cacheVideo.getKey();
+                        }
                     }
                 }
             }
 
-            double latencySaving;
+            double latencySaving = 0d;
             try {
                 if(cache != null) {
                     double datacenterLatency = endpoint.getDatacenterLatency();
                     double cacheLatency = endpoint.getCachesLatency().get(cache);
                     latencySaving = datacenterLatency - cacheLatency;
-                }else {
-                    latencySaving = 0;
                 }
             } catch(Exception e) {
-                latencySaving = 0;
+                System.out.println(e.getMessage());
             }
 
             allSavings += (latencySaving * requests);
