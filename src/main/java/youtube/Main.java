@@ -11,11 +11,9 @@ public class Main {
         ReadFileService readFileService = new ReadFileService();
         readFileService.parseFile(fileName);
 
-        YoutubeStreaming youtubeStreaming = YoutubeStreaming.getInstance();
         YoutubeStreamingOutput.getInstance().setVideoCacheMap();
 //        YoutubeStreamingOutput.getInstance().setValues();
 
-        YoutubeStreamingOutput youtubeStreamingOutput = YoutubeStreamingOutput.getInstance();
         Double score = YoutubeStreamingOutput.getInstance().getScore();
         System.out.println(String.valueOf(score));
         YoutubeStreamingOutput.getInstance().validation();
