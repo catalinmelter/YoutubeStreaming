@@ -11,6 +11,7 @@ public class Main {
         service.parseFile(fileName);
 
         FileInInfo.fileInInfo().logic();
-        System.out.println();
+        FileInInfo.fileInInfo().writeFile(fileName);
+        System.out.println("Score: " + FileInInfo.fileInInfo().getScore());
     }
 }

@@ -6,6 +6,9 @@ import datacenter.models.Slot;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,9 +35,8 @@ public class FileInInfo {
 
     public void logic(){
         //Sort Servers by Capacity and Slots Taken
-        servers.sort(Comparator
-                .comparing(Server::getCapacity).reversed()
-                .thenComparing(Server::getSlotsTaken));
+        servers.sort(Comparator.comparing(Server::getSlotsTaken).reversed());
+        servers.sort(Comparator.comparing(Server::getCapacity).reversed());
 
         slots = new Slot[rowsLength][slotsLength];
         for(int i=0;i<rowsLength;i++){
@@ -79,8 +81,6 @@ public class FileInInfo {
 
             for (Map.Entry<Integer, Integer> linePerformance : linesPerformanceMap.entrySet()) {
                 Integer line = linePerformance.getKey();
-                for (Map.Entry<Integer, Integer> poolPerformance : poolsPerformanceMap.entrySet()) {
-                    Integer poolId = poolPerformance.getKey();
 
                     for (int column = 0; column < slots[line].length; column++) {
                         //slot available
@@ -89,9 +89,11 @@ public class FileInInfo {
                             Integer slotsAvailable = getSlotsAvailable(line, column);
                             if(slotsAvailable>=server.getSlotsTaken()){
                                 //add
+                                Pool pool = getPoolWithLessServersFromTheLine(poolsPerformanceMap, line);
+
                                 server.setSlot(slots[line][column]);
-                                pools.get(poolId).getServers().add(server);
-                                server.setPool(pools.get(poolId));
+                                pools.get(pool.getId()).getServers().add(server);
+                                server.setPool(pools.get(pool.getId()));
                                 slots[line][column].setOffset(true);
                                 for(int k=0; k<server.getSlotsTaken(); k++){
                                     slots[line][column+k].setAvailable(false);
@@ -103,7 +105,6 @@ public class FileInInfo {
                             }
                         }
                     }
-                }
             }
         }
 
@@ -111,11 +112,38 @@ public class FileInInfo {
         System.out.println();
     }
 
+    private Pool getPoolWithLessServersFromTheLine(Map<Integer, Integer> poolsPerformanceMap, Integer line){
+        //get pool not in the line
+        List<Pool> pools = new ArrayList<>(this.pools);
+        for(Slot slot: slots[line]){
+            if(slot.isOffset() && slot.getServer() != null){
+                pools.remove(slot.getServer().getPool());
+            }
+        }
+
+        //set pools performance
+        Map<Integer, Integer> poolsMinPerformance = new HashMap<>();
+        for(Pool pool: pools){
+            poolsMinPerformance.put(pool.getId(), getPoolPerformance(pool));
+        }
+
+        //get pools ordered by performance
+        poolsMinPerformance = poolsMinPerformance.entrySet().stream()
+                .sorted(Map.Entry.<Integer, Integer>comparingByValue())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (e1, e2) -> e1, LinkedHashMap::new));
+
+        Integer idPool = poolsMinPerformance.entrySet().iterator().next().getKey();
+        return this.pools.get(idPool);
+    }
+
     private Integer getSlotsAvailable(Integer line, Integer column){
         Integer slotsAvailable = 0;
         for(int i=column; i<slots[line].length; i++){
             if(slots[line][i].isAvailable() && slots[line][i].getServer()==null){
                 slotsAvailable ++;
+            }else {
+                break;
             }
         }
         return slotsAvailable;
@@ -124,7 +152,7 @@ public class FileInInfo {
     private Integer getServersPerformanceOfTheLine (Slot[] lineSlotes){
         Integer serversPerformance = 0;
         for(Slot slot: lineSlotes){
-            if(slot.getServer() != null){
+            if(slot.isOffset() && slot.getServer() != null){
                 serversPerformance += slot.getServer().getCapacity();
             }
         }
@@ -155,23 +183,57 @@ public class FileInInfo {
             }
             System.out.println();
         }
+        System.out.println();
     }
 
-    public void score(){
+    public Integer getScore(){
         Integer[][] scoreMatrix = new Integer[pools.size()][slots.length];
 
         for(int poolId=0; poolId<pools.size(); poolId++){
             Pool pool = pools.get(poolId);
-
             for(int line=0; line<slots.length; line++){
+                Integer poolPerformance = getPoolPerformance(pool);
                 Slot[] slotsLine = slots[line];
                 for (Slot slot: slotsLine){
-                    if(pool.equals(slot.getServer().getPool())){
-
+                    if(slot.getServer()!=null && slot.isOffset() && !slot.isAvailable() && pool.equals(slot.getServer().getPool())){
+                        poolPerformance -= slot.getServer().getCapacity();
                     }
                 }
-
+                scoreMatrix[poolId][line] = poolPerformance;
             }
+        }
+
+        List<Integer> garanteeCapacity = new ArrayList<>();
+        for(int line=0; line<pools.size(); line++){
+            Integer minCapacity = Arrays.stream(scoreMatrix[line]).min(Comparator.comparing(Integer::valueOf)).get();
+            garanteeCapacity.add(minCapacity);
+        }
+
+        Integer minGaranteeCapacity = garanteeCapacity.stream().min(Comparator.comparing(Integer::valueOf)).get();
+        return minGaranteeCapacity;
+    }
+
+    public void writeFile(String fileName){
+        StringBuilder content = new StringBuilder();
+        //Sort Servers by Id and Slots Taken
+        servers.sort(Comparator.comparing(Server::getId));
+        for(Server server: servers){
+            if(server.getSlot() != null && server.getPool() != null) {
+                content.append(server.getSlot().getX());
+                content.append(" ");
+                content.append(server.getSlot().getY());
+                content.append(" ");
+                content.append(server.getPool().getId());
+            } else {
+                content.append("x");
+            }
+            content.append("\n");
+        }
+
+        try {
+            Files.write(Paths.get("output_" + fileName), content.toString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
